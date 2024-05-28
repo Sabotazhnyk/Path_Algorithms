@@ -1,120 +1,144 @@
 from PIL import Image, ImageDraw, ImageFont
 from math import sqrt
-#Исходные данные
-Place_1=[[0,  0,0,0,  0,  0,'x',0,  0,  0,  0,  0,0,  0,  0,0],
-         [0,  0,0,0,'x',  0,'x',0,  0,  0,  0,  0,0,  0,  0,0],
-         [0,  0,0,0,'x',  0,'x',0,  0,  0,  0,'x',0,  0,  0,0],
-         [0,'a',0,0,'x',  0,'x',0,  0,  0,  0,'x',0,  0,  0,0],
-         [0,  0,0,0,'x',  0,'x',0,  0,'x','x','x',0,  0,  0,0],
-         [0,  0,0,0,'x',  0,'x',0,  0,'x','x','x',0,  0,  0,0],
-         [0,  0,0,0,'x',  0,'x',0,'x','x','x','x',0,  0,  0,0],
-         [0,  0,0,0,'x',  0,'x',0,'x','x','x','x',0,  0,'b',0],
-         [0,  0,0,0,'x',  0,  0,0,  0,'x','x','x',0,  0,  0,0],
-         [0,  0,0,0,'x',  0,  0,0,  0,  0,'x','x',0,  0,  0,0],
-         [0,  0,0,0,'x',  0,  0,0,  0,  0,'x','x',0,  0,  0,0],
-         [0,  0,0,0,'x','x',  0,0,  0,  0,'x','x',0,  0,  0,0],
-         [0,  0,0,0,  0,'x',  0,0,  0,  0,'x','x',0,  0,  0,0],
-         [0,  0,0,0,  0,'x',  0,0,  0,  0,  0,  0,0,  0,  0,0],
-         [0,  0,0,0,  0,'x',  0,0,  0,  0,  0,  0,0,  0,  0,0],
-         [0,  0,0,0,  0,  0,  0,0,  0,  0,  0,  0,0,  0,  0,0]]
+# Исходные данные
+Place_1 = [[0, 0, 0, 0, 0, 0, 0],       # строка 1
+           [0, 0, 0,'x',0, 0, 0],       # строка 2
+           [0,'a',0,'x',0,'b',0],       # строка 3
+           [0, 0, 0,'x',0, 0, 0],       # строка 4
+           [0, 0, 0, 0, 0, 0, 0]]       # строка 5
 
-#Заготовка фона
-PL = Image.new('RGB', (1600, 1600), (255,255,255))
+# Заготовка фона
+PL = Image.new('RGB', (700, 500), (255,255,255))
 re_PL = ImageDraw.Draw(PL)
 front=ImageFont.truetype("arial.ttf", 20)
 
-#Функция разметки пространства
-def ShowPlace(Place):
+# Открытый список
+open_list = []
+
+# Закрытый список
+closed_list = []
+
+
+# Функция индексации всех точек
+def Create_Template_List(Place):
+    # point_of_Place_1 = [i, j, state, G(none), H(none), F(none)]
+    default_list = []
+    n = -1
+    for i in Place:
+        n += 1
+        m = -1
+        for j in i:
+            m += 1
+            if Place[n][m] == 'x' or Place[n][m] == 'a':
+                default_list.append([n, m, 0, None, None, None])
+            else:
+                default_list.append([n, m, 1, None, None, None])
+    return default_list
+default_list = Create_Template_List(Place_1)
+print(default_list)
+
+# Функция разметки пространства
+def Show_Place(Place):
     n=0
     for i in Place:
-        n+=1
-        m=0
+        n += 1
+        m = 0
         for j in i:
             m+=1
-            if j=='x':
+            if j == 'x':
                 re_PL.rectangle((m*100-100, n*100-100, m*100, n*100), fill='black',outline=(255, 255, 255))
-            elif j=='a' or j=='b':
+            elif j == 'a' or j == 'b':
                 re_PL.rectangle((m*100-100, n*100-100, m*100, n*100), fill='yellow',outline=(0, 0, 0))
                 re_PL.text((m*100-80, n*100-80),j, fill='black', font=front)
             else:
                 re_PL.rectangle((m*100-100, n*100-100, m*100, n*100), fill='white',outline=(0, 0, 0))
                 re_PL.text((m*100-80, n*100-80),str(j), fill='black', font=front)
 
-def placement(Place):
+# Функция поиска точки A и B
+def Find_Start_Finish(Place):
+    n = 0
+    for i in Place:
+        n += 1
+        m = 0
+        for j in i:
+            m += 1
+            if j == 'a':
+                point_start = (Place.index(i), i.index(j))
+            if j == 'b':
+                point_finish = (Place.index(i), i.index(j))
+    return point_start, point_finish
 
-    """ Функция собственно расставляет маршрут без учёта """
+# Функция поиска координат точек x
+def Find_Coord_x(Place):
+    list_x = []
+    n = -1
+    for i in Place:
+        n += 1
+        m = -1
+        for j in i:
+            m += 1
+            if j == 'x':
+                point_x = (n,m)
+                list_x.append(point_x)
+    return list_x       # возвращает список координат всех точек x
 
-    flag1 = 0
-    Max = 0
-    Place_2 = Place
-    flag2 = 0
-    for _ in range (30):
-        Max += 1 
-        n=0
-        for i in Place_2:
-            m = 0
-            for j in i:
-                if j == Max:
-                    if n >= 1 and (Place_2[n - 1][m] == 0 or Place_2[n - 1][m] == 'x'):
-                        Place_2[n - 1][m] = Max + 1
-                    if n <= 14 and (Place_2[n + 1][m] == 0 or Place_2[n + 1][m] == 'x'):
-                        Place_2[n + 1][m] = Max + 1
-                    if m >= 1 and (Place_2[n][m - 1] == 0 or Place_2[n][m - 1] == 'x'):
-                        Place_2[n][m - 1] = Max + 1
-                    if m <= 14 and (Place_2[n][m + 1] == 0 or Place_2[n][m + 1] == 'x'):
-                        Place_2[n][m + 1] = Max + 1 
-                if j == 'a':
-                    if n >= 1 and Place_2[n - 1][m] == Max:
-                        flag1 = 1
-                    elif n <= 14 and Place_2[n + 1][m] == Max:
-                        flag1 = 1
-                    elif m >= 1 and Place_2[n][m - 1] == Max:
-                        flag1 = 1
-                    elif m <= 14 and  Place_2[n][m + 1] == Max:
-                        flag1 = 1
-                if flag2 == 0 and j == 'b':
-                    Place_2[n - 1][m] = 1
-                    Place_2[n + 1][m] = 1
-                    Place_2[n][m - 1] = 1
-                    Place_2[n][m + 1] = 1
-                    flag2 = 1
-                    Max = 0
-                    break
-                m+=1 
-            n+=1
-            if flag2 == 1:
-                flag2 = 3
-                break 
-    allocation(Place, Place_2)
+# F = G + H
+# spisok = [i, j, state, G, H, F]   # кроме A и x
+# state - какие точки? не x, не в закрытом списке
+# но, если x - то, добавляем его координаты в особый список
+# поиск пути
+def Inspection_ASS(Place, default_list):
+    point_start = Find_Start_Finish(Place)[0]
+    open_list.append(point_start)
+    # A = [i, j]   =>   A = [i, j, state, G, H, F]
+    a_i, a_j = point_start[0](point_start[1])
+    print(a_i, a_j)
+    # default_list.append([i, j, 1, None, None, None])
+    # [[0, 0, 1, None...],
+    #  [0, 1, 1, None...]]
+    for element in default_list:
+        123
+    cord_dict = [default_list[a_i[0],a_i[1]]]
+    print(cord_dict)
 
-def allocation(Place, Place_2):
-    Place_3 = Place
-    Max = 0
-    for _ in range (30):
-        Max += 1 
-        n=0
-        for i in Place_3:
-            m = 0
-            for j in i:
-                if j == Max:
-                    if n >= 1 and Place_2[n - 1][m] == 0:
-                        Place_2[n - 1][m] = Max + 1
-                    if n <= 14 and Place_2[n + 1][m] == 0:
-                        Place_2[n + 1][m] = Max + 1
-                    if m >= 1 and Place_2[n][m - 1] == 0:
-                        Place_2[n][m - 1] = Max + 1
-                    if m <= 14 and Place_2[n][m + 1] == 0:
-                        Place_2[n][m + 1] = Max + 1
-                    if n >= 1 and n <= 14 and 
-                         
+Inspection_ASS(Place_1, default_list)
 
 
-placement(Place_1)
+
+# Функция нахождения точки с минимальным значением вокруг искомой
+# def point_min(s_i, s_j):
+#     cord_dict = {Place_1[s_i-1][s_j]:[s_i-1,s_j],
+#                  Place_1[s_i-1][s_j+1]:[s_i-1,s_j],
+#                  Place_1[s_i][s_j+1]:[s_i,s_j+1],
+#                  Place_1[s_i]:[s_i],
+#                  Place_1[s_i+1][s_j]:[s_i+1,s_j],
+#                  Place_1[s_i]:[s_i],
+#                  Place_1[s_i][s_j-1]:[s_i,s_j-1],
+#                  }
+#     if 'x' in cord_dict.keys():
+#         del cord_dict['x']
+#     if 'b' in cord_dict.keys():
+#         del cord_dict['b']
+#     m = min(cord_dict.keys())
+#     for k in cord_dict.keys():
+#         if k == m:
+#             start_cords = cord_dict[k]
+#             start_point_i = start_cords[0]
+#             start_point_j = start_cords[1]
+#             return ([start_point_i, start_point_j, m])
+
+# Функция добавления путевой точки в открытый список
+def Add_Open_List(path_point):
+    open_list.append(path_point)
+
+# Функция добавления путевой точки в закрытый список
+def Add_Closed_List(path_point):
+    closed_list.append(path_point)
+
+# def placement(Place):
+
+# placement(Place_1)
 
 contin=0
+Show_Place(Place_1)
 PL.show()
-
-
-
-
-
